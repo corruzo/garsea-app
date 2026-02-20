@@ -7,7 +7,8 @@ export const useRateStore = create(
     persist(
         (set, get) => ({
             todayRate: null,
-            lastFetchedRate: null, // Última tasa obtenida exitosamente
+            lastFetchedRate: null,
+            history: [],
             loading: false,
             error: null,
 
@@ -43,6 +44,16 @@ export const useRateStore = create(
                     } else {
                         set({ error: error.message, loading: false });
                     }
+                }
+            },
+
+            fetchHistory: async (organizacionId) => {
+                if (!organizacionId) return;
+                try {
+                    const data = await rateService.getHistory(organizacionId);
+                    set({ history: data });
+                } catch (error) {
+                    console.error('Error fetching history:', error);
                 }
             },
 
