@@ -20,7 +20,12 @@ import {
   IdentificationIcon,
   CameraIcon,
   CheckCircleIcon,
+  WalletIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  HistoryIcon
 } from '@heroicons/react/24/outline';
+import { capitalService } from '../services/capitalService';
 
 export default function Configuracion() {
   const { user, organizacion, setUser, setOrganizacion } = useAuthStore();
@@ -28,6 +33,16 @@ export default function Configuracion() {
   const [activeTab, setActiveTab] = useState('perfil');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Capital states
+  const [capitalSaldo, setCapitalSaldo] = useState({ USD: 0, VES: 0 });
+  const [movimientos, setMovimientos] = useState([]);
+  const [capitalForm, setCapitalForm] = useState({
+    monto: '',
+    moneda: 'USD',
+    tipo: 'aporte',
+    notas: ''
+  });
 
   // Estados para los formularios
   const [perfilForm, setPerfilForm] = useState({
@@ -64,12 +79,64 @@ export default function Configuracion() {
     reportesSemanales: organizacion?.settings?.notificaciones?.reportesSemanales ?? false,
   });
 
+  useEffect(() => {
+    if (activeTab === 'capital' && organizacion?.id) {
+      loadCapitalData();
+    }
+  }, [activeTab, organizacion?.id]);
+
+  const loadCapitalData = async () => {
+    setLoading(true);
+    try {
+      const [saldo, hist] = await Promise.all([
+        capitalService.getSaldo(organizacion.id),
+        capitalService.getMovimientos(organizacion.id)
+      ]);
+      setCapitalSaldo(saldo);
+      setMovimientos(hist);
+    } catch (error) {
+      console.error('Error loading capital:', error);
+      toast.error('Error al cargar datos de capital');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCapitalAction = async (e) => {
+    e.preventDefault();
+    if (!capitalForm.monto || parseFloat(capitalForm.monto) <= 0) {
+      toast.error('Ingresa un monto válido');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await capitalService.registrarMovimiento({
+        organizacionId: organizacion.id,
+        monto: parseFloat(capitalForm.monto),
+        moneda: capitalForm.moneda,
+        tipo: capitalForm.tipo,
+        notas: capitalForm.notas || (capitalForm.tipo === 'aporte' ? 'Aporte de capital' : 'Retiro de fondos')
+      });
+
+      toast.success('Movimiento registrado');
+      setCapitalForm({ monto: '', moneda: 'USD', tipo: 'aporte', notas: '' });
+      await loadCapitalData();
+    } catch (error) {
+      console.error('Error in capital action:', error);
+      toast.error('Error al registrar movimiento. ¿Ejecutaste el script SQL?');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // Tabs de configuración
   const tabs = [
     { id: 'perfil', label: 'Mi Perfil', icon: UserIcon },
     { id: 'organizacion', label: 'Organización', icon: BuildingOfficeIcon },
     { id: 'prestamos', label: 'Préstamos', icon: CurrencyDollarIcon },
     { id: 'notificaciones', label: 'Notificaciones', icon: BellIcon },
+    { id: 'capital', label: 'Capital/Caja', icon: WalletIcon },
     { id: 'apariencia', label: 'Apariencia', icon: PaintBrushIcon },
     { id: 'seguridad', label: 'Seguridad', icon: ShieldCheckIcon },
   ];
@@ -505,7 +572,122 @@ export default function Configuracion() {
             </div>
           )}
 
-          {/* APARIENCIA */}
+          {/* CAPITAL / CAJA */}
+          {activeTab === 'capital' && (
+            <div className="space-y-6 animate-slideUp">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="bg-gradient-to-br from-indigo-600 to-blue-700 text-white border-none shadow-xl relative overflow-hidden">
+                  <div className="relative z-10">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Liquidez Disponible USD</p>
+                    <h3 className="text-4xl font-black italic">${capitalSaldo.USD.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</h3>
+                  </div>
+                  <WalletIcon className="absolute -right-4 -bottom-4 w-24 h-24 opacity-10 rotate-12" />
+                </Card>
+                <Card className="bg-gradient-to-br from-emerald-600 to-teal-700 text-white border-none shadow-xl relative overflow-hidden">
+                  <div className="relative z-10">
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-1">Liquidez Disponible VES</p>
+                    <h3 className="text-4xl font-black italic">Bs {capitalSaldo.VES.toLocaleString('es-VE', { minimumFractionDigits: 2 })}</h3>
+                  </div>
+                  <CurrencyDollarIcon className="absolute -right-4 -bottom-4 w-24 h-24 opacity-10 -rotate-12" />
+                </Card>
+              </div>
+
+              <Card>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <ArrowUpIcon className="w-5 h-5 text-indigo-500" />
+                  Gestionar Movimiento
+                </h3>
+                <form onSubmit={handleCapitalAction} className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label="Monto"
+                      type="number"
+                      step="0.01"
+                      required
+                      value={capitalForm.monto}
+                      onChange={(e) => setCapitalForm({ ...capitalForm, monto: e.target.value })}
+                      placeholder="0.00"
+                    />
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Moneda</label>
+                      <select
+                        value={capitalForm.moneda}
+                        onChange={(e) => setCapitalForm({ ...capitalForm, moneda: e.target.value })}
+                        className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border-2 border-transparent focus:border-indigo-500 rounded-2xl text-sm outline-none transition-all font-bold text-gray-900 dark:text-white"
+                      >
+                        <option value="USD">Dólares (USD)</option>
+                        <option value="VES">Bolívares (VES)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Tipo de Movimiento</label>
+                      <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-2xl gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setCapitalForm({ ...capitalForm, tipo: 'aporte' })}
+                          className={`flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all ${capitalForm.tipo === 'aporte' ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-400'}`}
+                        >
+                          Aporte
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setCapitalForm({ ...capitalForm, tipo: 'retiro' })}
+                          className={`flex-1 py-2 text-[10px] font-black uppercase rounded-xl transition-all ${capitalForm.tipo === 'retiro' ? 'bg-red-600 text-white shadow-md' : 'text-gray-400'}`}
+                        >
+                          Retiro
+                        </button>
+                      </div>
+                    </div>
+                    <Input
+                      label="Nota / Concepto (Opcional)"
+                      value={capitalForm.notas}
+                      onChange={(e) => setCapitalForm({ ...capitalForm, notas: e.target.value })}
+                      placeholder="Ej: Inyección de capital inicial"
+                    />
+                  </div>
+
+                  <Button type="submit" variant="primary" fullWidth loading={saving}>
+                    Registrar Movimiento
+                  </Button>
+                </form>
+              </Card>
+
+              <Card>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                  <HistoryIcon className="w-5 h-5 text-slate-400" />
+                  Historial Reciente
+                </h3>
+                <div className="space-y-3">
+                  {movimientos.length === 0 ? (
+                    <p className="text-center py-6 text-gray-400 text-sm font-bold">No hay movimientos registrados</p>
+                  ) : (
+                    movimientos.map((mov) => (
+                      <div key={mov.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl ${mov.monto > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                            {mov.monto > 0 ? <ArrowUpIcon className="w-4 h-4" /> : <ArrowDownIcon className="w-4 h-4" />}
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-gray-900 dark:text-white capitalize">{mov.tipo.replace('_', ' ')}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase">{new Date(mov.fecha_registro).toLocaleString('es-VE')}</p>
+                            {mov.notas && <p className="text-xs text-slate-500 mt-0.5">{mov.notas}</p>}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-black ${mov.monto > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                            {mov.monto > 0 ? '+' : ''}{mov.moneda === 'USD' ? '$' : 'Bs'} {Math.abs(mov.monto).toLocaleString('es-VE')}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </Card>
+            </div>
+          )}
           {activeTab === 'apariencia' && (
             <div className="space-y-6 animate-slideUp">
               <Card>

@@ -42,17 +42,17 @@ export default function TasasCambio() {
     return (
         <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 pb-32 animate-fadeIn transition-colors">
             <header className="px-6 py-8">
-                <div className="max-w-5xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-8">
-                    <div className="flex items-center gap-4">
+                <div className="max-w-5xl mx-auto flex flex-row items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 md:gap-4 min-w-0">
                         <button
                             onClick={() => navigate('/dashboard')}
-                            className="p-2 hover:bg-white dark:hover:bg-slate-900 rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
+                            className="p-1.5 md:p-2 hover:bg-white dark:hover:bg-slate-900 rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-800 flex-shrink-0"
                         >
-                            <ChevronLeft className="w-6 h-6 text-slate-400" />
+                            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-slate-400" />
                         </button>
-                        <div>
-                            <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Control Divisas</h1>
-                            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Sincronización BCV en tiempo real</p>
+                        <div className="min-w-0">
+                            <h1 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate">Control Divisas</h1>
+                            <p className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1 truncate">Sincronización BCV</p>
                         </div>
                     </div>
 
@@ -61,10 +61,11 @@ export default function TasasCambio() {
                             onClick={handleScrape}
                             disabled={scraping}
                             variant="primary"
-                            size="md"
+                            size="sm"
                             icon={<RefreshCw size={18} className={scraping ? 'animate-spin' : ''} />}
+                            className="!rounded-full md:!rounded-[1.25rem] px-3 md:px-6 flex-shrink-0"
                         >
-                            {scraping ? 'SINCRONIZANDO...' : 'BUSCAR EN BCV'}
+                            <span className="hidden md:inline">{scraping ? 'SINCRONIZANDO...' : 'BUSCAR BCV'}</span>
                         </Button>
                     )}
                 </div>
@@ -110,8 +111,8 @@ export default function TasasCambio() {
                                                 key={pref.id}
                                                 onClick={() => handleUpdatePreference(pref.id)}
                                                 className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${organizacion?.tasa_referencia_pref === pref.id
-                                                        ? 'bg-indigo-600 border-indigo-700 text-white shadow-lg shadow-indigo-500/10'
-                                                        : 'bg-slate-50 dark:bg-slate-800 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100'
+                                                    ? 'bg-indigo-600 border-indigo-700 text-white shadow-lg shadow-indigo-500/10'
+                                                    : 'bg-slate-50 dark:bg-slate-800 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100'
                                                     }`}
                                             >
                                                 <div className="flex items-center gap-3">

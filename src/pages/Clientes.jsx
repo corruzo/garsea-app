@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import EmptyState from '../components/ui/EmptyState';
 
 const Clientes = () => {
   const { user, organizacion } = useAuthStore();
@@ -86,27 +87,28 @@ const Clientes = () => {
     <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 pb-20 animate-fadeIn transition-colors">
       <header className="px-6 py-8">
         <div className="max-w-5xl mx-auto space-y-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0">
               <button
                 onClick={() => navigate('/dashboard')}
-                className="p-2 hover:bg-white dark:hover:bg-slate-900 rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
+                className="p-1.5 md:p-2 hover:bg-white dark:hover:bg-slate-900 rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-800 flex-shrink-0"
               >
-                <ChevronLeft className="w-6 h-6 text-slate-400" />
+                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6 text-slate-400" />
               </button>
-              <div>
-                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Directorio Clientes</h1>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
-                  {clientes.length} Registros totales
+              <div className="min-w-0">
+                <h1 className="text-lg md:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate">Directorio Clientes</h1>
+                <p className="text-[9px] md:text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1 truncate">
+                  {clientes.length} Registros
                 </p>
               </div>
             </div>
             <Button
               onClick={() => { setEditingCliente(null); setIsModalOpen(true); }}
-              size="md"
+              size="sm"
               icon={<UserPlus size={18} />}
+              className="!rounded-full md:!rounded-[1.25rem] px-3 md:px-6 flex-shrink-0"
             >
-              NUEVO CLIENTE
+              <span className="hidden md:inline">NUEVO CLIENTE</span>
             </Button>
           </div>
 
@@ -152,11 +154,10 @@ const Clientes = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
-            <Users className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">Sin resultados</h3>
-            <p className="text-sm font-bold text-slate-400 mt-1">No se encontraron clientes para esta búsqueda.</p>
-          </div>
+          <EmptyState
+            onClear={() => { setSearchTerm(''); setFilterActive('activos'); }}
+            description="No encontramos ningún cliente que coincida con tu búsqueda o filtros actuales."
+          />
         )}
       </main>
 

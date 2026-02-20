@@ -28,8 +28,10 @@ import {
     ArrowDownTrayIcon,
     DocumentTextIcon,
     EyeIcon,
+    ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import { toast } from 'react-hot-toast';
+import EmptyState from '../components/ui/EmptyState';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -468,6 +470,18 @@ const PrestamoDetalle = () => {
                                     <ArrowDownTrayIcon className="w-4 h-4" />
                                     PDF Contrato
                                 </button>
+                                {/* WhatsApp Status Button */}
+                                <button
+                                    onClick={() => {
+                                        const mensaje = `Hola ${prestamo.clientes?.nombre}, te envío el estado de tu préstamo #${prestamo.id.split('-')[0].toUpperCase()}. Saldo pendiente: ${sym}${fmt(prestamo.saldo_pendiente)}. Fecha de vencimiento: ${fmtDate(prestamo.fecha_fin)}.`;
+                                        const url = `https://wa.me/${prestamo.clientes?.telefono?.replace(/\D/g, '')}?text=${encodeURIComponent(mensaje)}`;
+                                        window.open(url, '_blank');
+                                    }}
+                                    className="flex items-center gap-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 backdrop-blur-md px-3 py-1 rounded-lg text-sm font-bold border border-emerald-500/20 transition-all active:scale-95"
+                                >
+                                    <ChatBubbleLeftRightIcon className="w-4 h-4 text-emerald-200" />
+                                    Enviar Saldo
+                                </button>
                             </div>
                         </div>
                         <div className="text-left md:text-right">
@@ -710,13 +724,11 @@ const PrestamoDetalle = () => {
                             })}
                         </Card>
                     ) : (
-                        <Card className="text-center py-20 bg-white dark:bg-gray-800 rounded-[2.5rem] border-2 border-dashed border-gray-200 dark:border-gray-700 shadow-none">
-                            <div className="w-20 h-20 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                                <ReceiptPercentIcon className="w-10 h-10 text-gray-300" />
-                            </div>
-                            <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1 italic">Sin movimientos aún</h3>
-                            <p className="text-gray-500 dark:text-gray-400">Este préstamo no registra amortizaciones.</p>
-                        </Card>
+                        <EmptyState
+                            title="Sin movimientos"
+                            description="Este préstamo aún no registra abonos o pagos procesados."
+                            icon={ReceiptPercentIcon}
+                        />
                     )}
                 </div>
             </div>
@@ -883,67 +895,68 @@ const PrestamoDetalle = () => {
             </Modal>
 
             {/* ── Lightbox de Garantías ─────────────────────────── */}
-            {isGalleryOpen && garantiaDocs.length > 0 && (
-                <div
-                    className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
-                    onClick={() => setIsGalleryOpen(false)}
-                >
-                    <button
-                        className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all"
+            {
+                isGalleryOpen && garantiaDocs.length > 0 && (
+                    <div
+                        className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
                         onClick={() => setIsGalleryOpen(false)}
                     >
-                        <XMarkIcon className="w-6 h-6" />
-                    </button>
-
-                    <div className="flex items-center gap-4 px-4 w-full max-w-4xl" onClick={e => e.stopPropagation()}>
                         <button
-                            className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all flex-shrink-0 disabled:opacity-30"
-                            disabled={galleryIndex === 0}
-                            onClick={() => setGalleryIndex(i => i - 1)}
+                            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all"
+                            onClick={() => setIsGalleryOpen(false)}
                         >
-                            <ArrowLeftIcon className="w-6 h-6" />
+                            <XMarkIcon className="w-6 h-6" />
                         </button>
 
-                        <div className="flex-1 flex flex-col items-center gap-4">
-                            <img
-                                src={garantiaDocs[galleryIndex].url_archivo}
-                                alt={garantiaDocs[galleryIndex].nombre_archivo}
-                                className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
-                            />
-                            <p className="text-white/60 text-xs font-bold">
-                                {galleryIndex + 1} / {garantiaDocs.length} · {garantiaDocs[galleryIndex].nombre_archivo}
-                            </p>
-                            <a
-                                href={garantiaDocs[galleryIndex].url_archivo}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="flex items-center gap-2 text-xs font-black text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"
+                        <div className="flex items-center gap-4 px-4 w-full max-w-4xl" onClick={e => e.stopPropagation()}>
+                            <button
+                                className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all flex-shrink-0 disabled:opacity-30"
+                                disabled={galleryIndex === 0}
+                                onClick={() => setGalleryIndex(i => i - 1)}
                             >
-                                <ArrowDownTrayIcon className="w-4 h-4" />
-                                Abrir original
-                            </a>
+                                <ArrowLeftIcon className="w-6 h-6" />
+                            </button>
+
+                            <div className="flex-1 flex flex-col items-center gap-4">
+                                <img
+                                    src={garantiaDocs[galleryIndex].url_archivo}
+                                    alt={garantiaDocs[galleryIndex].nombre_archivo}
+                                    className="max-h-[75vh] max-w-full object-contain rounded-2xl shadow-2xl"
+                                />
+                                <p className="text-white/60 text-xs font-bold">
+                                    {galleryIndex + 1} / {garantiaDocs.length} · {garantiaDocs[galleryIndex].nombre_archivo}
+                                </p>
+                                <a
+                                    href={garantiaDocs[galleryIndex].url_archivo}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center gap-2 text-xs font-black text-white/70 hover:text-white bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl transition-all"
+                                >
+                                    <ArrowDownTrayIcon className="w-4 h-4" />
+                                    Abrir original
+                                </a>
+                            </div>
+
+                            <button
+                                className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all flex-shrink-0 disabled:opacity-30 rotate-180"
+                                disabled={galleryIndex === garantiaDocs.length - 1}
+                                onClick={() => setGalleryIndex(i => i + 1)}
+                            >
+                                <ArrowLeftIcon className="w-6 h-6" />
+                            </button>
                         </div>
 
-                        <button
-                            className="p-3 bg-white/10 hover:bg-white/20 rounded-2xl text-white transition-all flex-shrink-0 disabled:opacity-30 rotate-180"
-                            disabled={galleryIndex === garantiaDocs.length - 1}
-                            onClick={() => setGalleryIndex(i => i + 1)}
-                        >
-                            <ArrowLeftIcon className="w-6 h-6" />
-                        </button>
+                        <div className="absolute bottom-6 flex gap-2">
+                            {garantiaDocs.map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={(e) => { e.stopPropagation(); setGalleryIndex(i); }}
+                                    className={`w-2 h-2 rounded-full transition-all ${i === galleryIndex ? 'bg-white w-6' : 'bg-white/40'}`}
+                                />
+                            ))}
+                        </div>
                     </div>
-
-                    <div className="absolute bottom-6 flex gap-2">
-                        {garantiaDocs.map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={(e) => { e.stopPropagation(); setGalleryIndex(i); }}
-                                className={`w-2 h-2 rounded-full transition-all ${i === galleryIndex ? 'bg-white w-6' : 'bg-white/40'}`}
-                            />
-                        ))}
-                    </div>
-                </div>
-            )}
+                )}
         </div>
     );
 };

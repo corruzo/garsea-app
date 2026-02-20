@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useRateStore } from '../stores/rateStore';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import { capitalService } from '../services/capitalService';
 import { clientService } from '../services/clientService';
 import { loanService } from '../services/loanService';
 import { paymentService } from '../services/paymentService';
@@ -30,17 +32,20 @@ export default function Dashboard() {
     totalUSD: 0,
     totalVES: 0,
     recentActivity: [],
-    loading: true
+    loading: true,
+    riskData: { health: 100, active: 0, late: 0 },
+    liquidez: { USD: 0, VES: 0 }
   });
 
   const loadDashboardData = useCallback(async () => {
     if (!organizacion?.id) return;
 
     try {
-      const [clients, loans, payments] = await Promise.all([
+      const [clients, loans, payments, capitalSaldo] = await Promise.all([
         clientService.getAll(organizacion.id),
-        loanService.getAll(organizacion.id),
-        paymentService.getAll(organizacion.id),
+        loanService.getAll(organizacion.id, true),
+        paymentService.getRecent(organizacion.id),
+        capitalService.getSaldo(organizacion.id),
         fetchTodayRate(organizacion.id)
       ]);
 
@@ -55,9 +60,9 @@ export default function Dashboard() {
       const mixedActivity = [
         ...loans.slice(0, 5).map(l => ({
           type: 'loan',
-          text: `${l.clientes?.nombre?.split(' ')[0] || 'Cliente'}`,
+          text: `${l.clientes?.nombre?.split(' ')[0] || 'Cliente'} `,
           time: new Date(l.fecha_creacion).toLocaleDateString(),
-          amount: `${l.moneda === 'USD' ? '$' : 'Bs'} ${l.monto_capital.toLocaleString()}`,
+          amount: `${l.moneda === 'USD' ? '$' : 'Bs'} ${l.monto_capital.toLocaleString()} `,
           icon: Banknote,
           color: 'text-indigo-600',
           bgColor: 'bg-indigo-50 dark:bg-indigo-950/40',
@@ -65,9 +70,9 @@ export default function Dashboard() {
         })),
         ...payments.slice(0, 5).map(p => ({
           type: 'payment',
-          text: `${p.prestamos?.clientes?.nombre?.split(' ')[0] || 'Cliente'}`,
+          text: `${p.prestamos?.clientes?.nombre?.split(' ')[0] || 'Cliente'} `,
           time: new Date(p.fecha_pago).toLocaleDateString(),
-          amount: `+${p.moneda_pago === 'USD' ? '$' : 'Bs'} ${p.monto_abonado.toLocaleString()}`,
+          amount: `+ ${p.moneda_pago === 'USD' ? '$' : 'Bs'} ${p.monto_abonado.toLocaleString()} `,
           icon: DollarSign,
           color: 'text-emerald-600',
           bgColor: 'bg-emerald-50 dark:bg-emerald-950/40',
@@ -83,10 +88,17 @@ export default function Dashboard() {
         totalUSD: totalUSD + (totalVES / activeRateValue),
         totalVES: totalVES + (totalUSD * activeRateValue),
         recentActivity: mixedActivity,
+        liquidez: capitalSaldo || { USD: 0, VES: 0 },
+        riskData: {
+          health: loans.length > 0 ? (loans.filter(l => l.estado === 'activo').length / loans.length) * 100 : 100,
+          active: loans.filter(l => l.estado === 'activo').length,
+          late: loans.filter(l => l.estado === 'atrasado' || l.estado === 'vencido').length
+        },
         loading: false
       });
     } catch (error) {
       console.error('Error loadDashboardData:', error);
+      toast.error('Error al cargar datos del dashboard.');
       setData(prev => ({ ...prev, loading: false }));
     }
   }, [organizacion?.id, fetchTodayRate, getActiveRate]);
@@ -153,15 +165,48 @@ export default function Dashboard() {
               </div>
             </div>
             {/* Decoración discreta */}
-            <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700" />
           </Card>
 
-          <Card className="p-5 flex flex-col justify-between" padding="none">
+          {/* Capital Disponible */}
+          <div className="grid grid-cols-2 gap-4">
+            <Card className="p-4 bg-slate-900 border-none relative overflow-hidden group">
+              <div className="relative z-10 flex flex-col justify-between h-full">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Liquidez USD</span>
+                <h3 className="text-xl font-black text-emerald-400 italic">
+                  ${data.liquidez.USD.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                </h3>
+              </div>
+              <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform" />
+            </Card>
+            <Card className="p-4 bg-slate-900 border-none relative overflow-hidden group">
+              <div className="relative z-10 flex flex-col justify-between h-full">
+                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Liquidez VES</span>
+                <h3 className="text-xl font-black text-emerald-400 italic">
+                  Bs {data.liquidez.VES.toLocaleString(undefined, { minimumFractionDigits: 0 })}
+                </h3>
+              </div>
+              <div className="absolute -right-4 -bottom-4 w-16 h-16 bg-blue-500/10 rounded-full blur-xl group-hover:scale-150 transition-transform" />
+            </Card>
+          </div>
+
+          <Card className="p-5 flex flex-col justify-between" padding="none" glass>
             <div className="p-4 space-y-2">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Cartera Bs</span>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">
-                Bs {data.totalVES.toLocaleString(undefined, { maximumFractionDigits: 0 })}
-              </h3>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Salud de Cartera</span>
+              <div className="flex items-end justify-between">
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">
+                  {data.riskData.health.toFixed(0)}%
+                </h3>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg ${data.riskData.health > 80 ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                  {data.riskData.health > 80 ? 'ÓPTIMA' : 'REVISAR'}
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className={`h-full transition-all duration-1000 ${data.riskData.health > 80 ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                  style={{ width: `${data.riskData.health}%` }}
+                />
+              </div>
             </div>
             <div className="bg-slate-50 dark:bg-slate-800/80 p-3 rounded-2xl border border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tasa BCV</span>
@@ -201,15 +246,15 @@ export default function Dashboard() {
               {data.recentActivity.map((activity, index) => (
                 <div key={index} className="flex items-center justify-between p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                   <div className="flex items-center gap-4">
-                    <div className={`p-2.5 ${activity.bgColor} rounded-xl`}>
-                      <activity.icon className={`w-4 h-4 ${activity.color}`} />
+                    <div className={`p - 2.5 ${activity.bgColor} rounded - xl`}>
+                      <activity.icon className={`w - 4 h - 4 ${activity.color} `} />
                     </div>
                     <div>
                       <p className="text-sm font-black text-slate-900 dark:text-white leading-tight">{activity.text}</p>
                       <p className="text-[9px] font-bold text-slate-400 uppercase">{activity.time}</p>
                     </div>
                   </div>
-                  <p className={`text-sm font-black tabular-nums ${activity.type === 'payment' ? 'text-emerald-600' : 'text-slate-900 dark:text-white'}`}>
+                  <p className={`text - sm font - black tabular - nums ${activity.type === 'payment' ? 'text-emerald-600' : 'text-slate-900 dark:text-white'} `}>
                     {activity.amount}
                   </p>
                 </div>

@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import EmptyState from '../components/ui/EmptyState';
 
 export default function Cobranza() {
     const { organizacion } = useAuthStore();
@@ -227,9 +228,10 @@ export default function Cobranza() {
                     ))}
 
                     {filteredPrestamos.length === 0 && (
-                        <div className="py-20 text-center bg-white dark:bg-gray-900 rounded-[3rem] border border-dashed border-gray-200 dark:border-gray-800">
-                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No se encontraron préstamos</p>
-                        </div>
+                        <EmptyState
+                            onClear={() => { setSearchTerm(''); setFilterState('todos'); }}
+                            description="No hay deudas pendientes que coincidan con estos filtros."
+                        />
                     )}
                 </div>
 

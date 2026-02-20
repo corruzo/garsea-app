@@ -4,6 +4,8 @@ import { clientService } from '../../services/clientService';
 import { useRateStore } from '../../stores/rateStore';
 import Input from '../ui/Input';
 import Button from '../ui/Button';
+import { useCapital } from '../../hooks/useCapital';
+import { toast } from 'react-hot-toast';
 import {
     UserIcon,
     BanknotesIcon,
@@ -25,6 +27,8 @@ const PrestamoForm = ({ onSubmit, loading }) => {
     const [searchClient, setSearchClient] = useState('');
     const [selectedClient, setSelectedClient] = useState(null);
     const [currency, setCurrency] = useState('USD');
+    const { saldo: capitalDisponible, loading: loadingCapital } = useCapital(organizacion?.id);
+    const hasEnoughCapital = parseFloat(formData.monto_capital) > 0 ? (capitalDisponible[currency] >= parseFloat(formData.monto_capital)) : true;
 
     // Estado para fotos de garantía
     const fileInputRef = React.useRef(null);
@@ -136,6 +140,11 @@ const PrestamoForm = ({ onSubmit, loading }) => {
     const handleSubmit = (e) => {
         e.preventDefault();
         if (!selectedClient) return;
+
+        if (!hasEnoughCapital) {
+            toast.error(`No tienes suficiente capital en ${currency} para este préstamo.`);
+            return;
+        }
 
         onSubmit({
             cliente_cedula: selectedClient.cedula,
@@ -331,11 +340,18 @@ const PrestamoForm = ({ onSubmit, loading }) => {
                         {parseFloat(formData.monto_capital) > 0 && todayRate && (() => {
                             const rate = getActiveRate(organizacion?.tasa_referencia_pref) || 1;
                             return (
-                                <p className="px-2 text-[10px] font-black uppercase tracking-widest text-indigo-500 animate-fadeIn">
-                                    ≈ {currency === 'USD'
-                                        ? `Bs ${(parseFloat(formData.monto_capital) * rate).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
-                                        : `$ ${(parseFloat(formData.monto_capital) / rate).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} {currency === 'USD' ? 'Referencia' : 'USD'}
-                                </p>
+                                <div className="space-y-1">
+                                    <p className="px-2 text-[10px] font-black uppercase tracking-widest text-indigo-500 animate-fadeIn">
+                                        ≈ {currency === 'USD'
+                                            ? `Bs ${(parseFloat(formData.monto_capital) * rate).toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+                                            : `$ ${(parseFloat(formData.monto_capital) / rate).toLocaleString(undefined, { minimumFractionDigits: 2 })}`} {currency === 'USD' ? 'Referencia' : 'USD'}
+                                    </p>
+                                    {!hasEnoughCapital && !loadingCapital && (
+                                        <p className="px-2 text-[10px] font-black uppercase tracking-widest text-red-500 animate-pulse bg-red-50 dark:bg-red-900/20 p-1 rounded-lg">
+                                            ⚠️ Capital insuficiente (Disponible: {currencySymbol}{capitalDisponible[currency].toLocaleString()})
+                                        </p>
+                                    )}
+                                </div>
                             );
                         })()}
                     </div>
