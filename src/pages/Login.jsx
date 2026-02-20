@@ -46,7 +46,6 @@ export default function Login() {
     if (result.success) {
       setUser(result.data.usuario);
       setOrganizacion(result.data.organizacion);
-      toast.success('¡Bienvenido!');
       setTimeout(() => navigate('/dashboard'), 200);
     } else {
       toast.error(result.error || 'Correo o clave incorrectos');

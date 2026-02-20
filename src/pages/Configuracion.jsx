@@ -237,7 +237,7 @@ export default function Configuracion() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Configuración
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-slate-700 dark:text-slate-300 font-bold">
             Personaliza tu experiencia en GARSEA
           </p>
         </div>
@@ -411,7 +411,7 @@ export default function Configuracion() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                    <label className="block text-sm font-black text-slate-700 dark:text-slate-300 mb-3">
                       Tipos de Pago Disponibles
                     </label>
                     <div className="space-y-2">

@@ -65,7 +65,7 @@ export default function Cobranza() {
                         </span>
                         Gestión de Cobranza
                     </h1>
-                    <p className="text-sm font-medium text-gray-500 dark:text-gray-400 mt-2 ml-1">
+                    <p className="text-sm font-black text-slate-600 dark:text-slate-300 mt-2 ml-1">
                         Gestiona vencimientos, moras y seguimiento de pagos
                     </p>
                 </div>
@@ -180,7 +180,7 @@ export default function Cobranza() {
                                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${getStatusColor(prestamo.cobranza.estado)}`}>
                                             {prestamo.cobranza.label}
                                         </span>
-                                        <span className="text-xs font-bold text-gray-400">
+                                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                             {prestamo.tipo_pago}
                                         </span>
                                     </div>
@@ -202,7 +202,7 @@ export default function Cobranza() {
 
                                 <div className="text-right border-l border-gray-200 dark:border-gray-700 pl-6">
                                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Vence</p>
-                                    <p className="text-sm font-bold text-gray-700 dark:text-gray-300">
+                                    <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
                                         {prestamo.cobranza.fechaVencimiento ? format(prestamo.cobranza.fechaVencimiento, 'dd MMM', { locale: es }).toUpperCase() : 'N/A'}
                                     </p>
                                 </div>

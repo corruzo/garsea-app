@@ -285,7 +285,7 @@ const NuevoPrestamo = () => {
                             />
 
                             <div className="space-y-1">
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 ml-1">Frecuencia de Pago</label>
+                                <label className="block text-sm font-black text-slate-700 dark:text-slate-300 ml-1">Frecuencia de Pago</label>
                                 <select
                                     value={formData.tipo_pago}
                                     onChange={(e) => setFormData({ ...formData, tipo_pago: e.target.value })}
@@ -325,7 +325,7 @@ const NuevoPrestamo = () => {
                                 className="w-6 h-6 rounded-lg border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
                             <div>
-                                <p className="font-bold text-gray-900 dark:text-white">Este préstamo requiere garantía</p>
+                                <p className="font-black text-slate-900 dark:text-white">Este préstamo requiere garantía</p>
                                 <p className="text-xs text-gray-500">Activa esta casilla si el cliente entrega algún respaldo</p>
                             </div>
                         </label>
