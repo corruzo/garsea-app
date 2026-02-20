@@ -15,13 +15,12 @@ import {
   LogOut,
   Settings,
   Globe,
-  User as UserIcon,
   Bell,
-  CircleCheckBig,
-  TriangleAlert,
-  CircleAlert,
-  Info,
-  ChevronRight
+  ChevronRight,
+  X,
+  User as UserIcon,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -30,22 +29,23 @@ const NAV_ITEMS = [
   { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard, path: '/dashboard' },
   { id: 'clientes', label: 'Clientes', icon: Users, path: '/clientes' },
   { id: 'prestamos', label: 'Préstamos', icon: Banknote, path: '/prestamos' },
-  { id: 'cobranza', label: 'Cobranza', icon: Megaphone, path: '/cobranza' },
-  { id: 'reportes', label: 'Reportes', icon: BarChart3, path: '/reportes' },
+  { id: 'cobranza', label: 'Cobros', icon: Megaphone, path: '/cobranza' },
+  { id: 'reportes', label: 'Análisis', icon: BarChart3, path: '/reportes' },
 ];
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme } = useThemeStore();
+  const { theme, toggleTheme } = useThemeStore();
   const { logout, user, organizacion } = useAuthStore();
   const { notifications, markAsRead, markAllAsRead } = useNotificationStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const notifRef = useRef(null);
+  const userMenuRef = useRef(null);
 
-  // Aplicar tema al documento
   useEffect(() => {
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
@@ -54,269 +54,224 @@ export default function Layout({ children }) {
     }
   }, [theme]);
 
-  // Click outside to close notifications
   useEffect(() => {
     function handleClickOutside(event) {
       if (isNotifOpen && notifRef.current && !notifRef.current.contains(event.target)) {
         setIsNotifOpen(false);
       }
+      if (isUserMenuOpen && userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setIsUserMenuOpen(false);
+        setConfirmLogout(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isNotifOpen]);
-
-  // Determinar ruta activa
-  const currentPath = location.pathname;
-  const getActiveIndex = () => {
-    return NAV_ITEMS.findIndex(item => currentPath.startsWith(item.path));
-  };
-  const activeIndex = getActiveIndex();
+  }, [isNotifOpen, isUserMenuOpen]);
 
   const handleLogout = async () => {
     if (!confirmLogout) {
       setConfirmLogout(true);
-      toast('Presiona de nuevo para cerrar sesión', {
-        icon: '⚠️',
-        style: { borderRadius: '10px', background: '#333', color: '#fff' }
-      });
-      setTimeout(() => setConfirmLogout(false), 3000);
       return;
     }
     await logout();
     navigate('/login');
+    toast.success('Sesión finalizada');
   };
 
   const menuItems = [
-    { label: 'Mi Perfil', icon: UserIcon, action: () => { navigate('/configuracion'); setIsMenuOpen(false); } },
-    { label: 'Control de Divisas', icon: Globe, action: () => { navigate('/tasas'); setIsMenuOpen(false); } },
-    { label: 'Configuración Sistema', icon: Settings, action: () => { navigate('/configuracion'); setIsMenuOpen(false); } },
+    { label: 'Control de Divisas', icon: Globe, path: '/tasas' },
+    { label: 'Ajustes del Sistema', icon: Settings, path: '/configuracion' },
   ];
-
-  const getNotifIcon = (type) => {
-    switch (type) {
-      case 'success': return <CircleCheckBig className="w-5 h-5 text-emerald-500" />;
-      case 'warning': return <TriangleAlert className="w-5 h-5 text-amber-500" />;
-      case 'error': return <CircleAlert className="w-5 h-5 text-red-500" />;
-      default: return <Info className="w-5 h-5 text-blue-500" />;
-    }
-  };
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0F172A] transition-colors duration-500">
+    <div className="min-h-screen bg-slate-100 dark:bg-slate-950 transition-colors duration-500">
       <DataPreloader />
-      <ConnectionIndicator />
 
-      {/* Header Premium */}
-      <header className="fixed top-0 left-0 right-0 z-[100] px-6 py-6 pointer-events-none">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button
-            onClick={() => setIsMenuOpen(true)}
-            className="group p-4 bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/40 dark:border-slate-700/40 rounded-3xl shadow-soft text-slate-900 dark:text-white transition-all hover:scale-110 active:scale-95 pointer-events-auto"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-
-          <div className="relative pointer-events-auto" ref={notifRef}>
+      {/* Cabecera Ultradelgada y Elegante */}
+      <header className="fixed top-0 left-0 right-0 z-[100] bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 h-16 flex items-center">
+        <div className="max-w-7xl mx-auto w-full px-6 flex items-center justify-between">
+          <div className="flex items-center gap-4">
             <button
-              onClick={() => setIsNotifOpen(!isNotifOpen)}
-              className="group p-4 bg-white/70 dark:bg-slate-800/70 backdrop-blur-xl border border-white/40 dark:border-slate-700/40 rounded-3xl shadow-soft text-slate-900 dark:text-white transition-all hover:scale-110 active:scale-95 relative"
+              onClick={() => setIsMenuOpen(true)}
+              className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
             >
-              <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'animate-wiggle' : ''}`} />
-              {unreadCount > 0 && (
-                <span className="absolute top-3.5 right-3.5 w-3 h-3 bg-indigo-600 border-2 border-white dark:border-slate-800 rounded-full animate-pulse" />
-              )}
+              <Menu className="w-5 h-5 text-slate-600 dark:text-slate-300" />
             </button>
+            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 hidden sm:block" />
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-[10px] font-black text-indigo-600 uppercase tracking-[0.2em]">{organizacion?.nombre || 'Gestión'}</span>
+            </div>
+          </div>
 
-            <AnimatePresence>
-              {isNotifOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 20, scale: 0.95 }}
-                  className="absolute right-0 mt-4 w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-2xl overflow-hidden z-[110]"
-                >
-                  <div className="p-6 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Notificaciones</h3>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          markAllAsRead();
-                        }}
-                        className="text-[10px] font-black text-indigo-500 uppercase tracking-tighter"
-                      >
-                        Marcar todas
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-[400px] overflow-y-auto scrollbar-none">
-                    {notifications.length > 0 ? (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            markAsRead(n.id);
-                          }}
-                          className={`p-6 border-b border-slate-50 dark:border-slate-800 flex gap-4 transition-colors cursor-pointer ${!n.read ? 'bg-indigo-50/30 dark:bg-indigo-900/5' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}
-                        >
-                          <div className="mt-0.5">{getNotifIcon(n.type)}</div>
-                          <div className="flex-1">
-                            <p className="text-xs font-black text-slate-900 dark:text-white leading-tight mb-1">{n.title}</p>
-                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed">{n.message}</p>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter mt-2">{new Date(n.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+          <div className="flex items-center gap-3">
+            <ConnectionIndicator />
+
+            {/* Notificaciones Refinadas */}
+            <div className="relative" ref={notifRef}>
+              <button
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all relative"
+              >
+                <Bell className="w-5 h-5 text-slate-500 dark:text-slate-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-indigo-600 rounded-full border-2 border-white dark:border-slate-900" />
+                )}
+              </button>
+
+              <AnimatePresence>
+                {isNotifOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    className="absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-xl overflow-hidden z-[110]"
+                  >
+                    <div className="p-5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Alertas</span>
+                      <button onClick={markAllAsRead} className="text-[10px] font-black text-indigo-600 hover:underline px-2 py-1">Limpiar</button>
+                    </div>
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {notifications.length > 0 ? (
+                        notifications.map((n) => (
+                          <div key={n.id} onClick={() => markAsRead(n.id)} className={`p-4 border-b border-slate-50 dark:border-slate-800 flex gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors ${!n.read ? 'bg-indigo-50/30' : ''}`}>
+                            <div className="flex-1">
+                              <p className="text-sm font-black text-slate-800 dark:text-slate-100 leading-tight mb-1">{n.title}</p>
+                              <p className="text-xs font-bold text-slate-400 line-clamp-2">{n.message}</p>
+                            </div>
+                            {!n.read && <div className="w-2 h-2 bg-indigo-600 rounded-full mt-1" />}
                           </div>
-                          {!n.read && <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full mt-2" />}
+                        ))
+                      ) : (
+                        <div className="py-10 text-center text-slate-400 font-black text-[10px] uppercase tracking-[0.2em]">Bandeja vacía</div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Menú de Usuario Compacto */}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700 hover:ring-4 ring-indigo-500/10 transition-all"
+              >
+                <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white font-black text-xs">
+                  {user?.nombre?.charAt(0) || 'U'}
+                </div>
+              </button>
+
+              <AnimatePresence>
+                {isUserMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                    className="absolute right-0 mt-3 w-64 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-[2rem] shadow-xl overflow-hidden z-[110]"
+                  >
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                      <div className="w-14 h-14 rounded-3xl bg-indigo-600 flex items-center justify-center text-white font-black text-xl mb-3 shadow-lg">{user?.nombre?.charAt(0)}</div>
+                      <p className="text-sm font-black text-slate-900 dark:text-white truncate w-full px-2">{user?.nombre}</p>
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Cedula: {user?.cedula}</p>
+                    </div>
+                    <div className="p-3 space-y-1">
+                      <button onClick={() => { toggleTheme(); setIsUserMenuOpen(false); }} className="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300 transition-all">
+                        <div className="flex items-center gap-3">
+                          {theme === 'dark' ? <Sun size={18} className="text-amber-500" /> : <Moon size={18} className="text-indigo-600" />}
+                          Modo {theme === 'dark' ? 'Claro' : 'Oscuro'}
                         </div>
-                      ))
-                    ) : (
-                      <div className="py-20 text-center">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sin notificaciones nuevas</p>
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                      </button>
+                      <button onClick={() => { navigate('/configuracion'); setIsUserMenuOpen(false); }} className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-black text-slate-600 dark:text-slate-300 transition-all">
+                        <Settings size={18} />
+                        Ajustes
+                      </button>
+                      <hr className="my-2 border-slate-100 dark:border-slate-800" />
+                      <button
+                        onClick={handleLogout}
+                        className={`w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-xs font-black ${confirmLogout ? 'bg-red-600 text-white shadow-lg shadow-red-500/20' : 'text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10'}`}
+                      >
+                        <LogOut size={18} />
+                        {confirmLogout ? 'CONFIRMAR SALIDA' : 'CERRAR SESIÓN'}
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Sidebar Mobile / Drawer */}
+      {/* Menú Lateral Moderno */}
       <AnimatePresence>
         {isMenuOpen && (
-          <div className="fixed inset-0 z-[150] flex justify-start">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-950/40 backdrop-blur-md"
-              onClick={() => setIsMenuOpen(false)}
-            />
-
-            <motion.div
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="relative w-80 max-w-[85vw] h-full bg-white dark:bg-slate-900 shadow-2xl flex flex-col pt-24"
-            >
-              <div className="px-8 mb-12">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/30">
-                    <span className="text-white font-black italic text-xl">G</span>
-                  </div>
-                  <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter italic">Garsea App</h2>
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[150] bg-slate-950/20 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)} />
+            <motion.div initial={{ x: '-100%' }} animate={{ x: 0 }} exit={{ x: '-100%' }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} className="fixed top-0 left-0 w-80 h-full bg-white dark:bg-slate-900 z-[200] shadow-2xl flex flex-col p-6">
+              <div className="flex items-center justify-between mb-10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-500/20 text-white font-black italic text-xl">G</div>
+                  <span className="text-xl font-black text-slate-900 dark:text-white tracking-widest">GARSEA</span>
                 </div>
-                <div className="h-1 w-12 bg-indigo-500 rounded-full" />
+                <button onClick={() => setIsMenuOpen(false)} className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all"><X size={20} /></button>
               </div>
 
-              <div className="px-8 mb-10">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Organización</p>
-                <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{organizacion?.nombre || 'Default Corp'}</p>
-                </div>
-              </div>
-
-              <nav className="px-4 space-y-2 flex-1 scrollbar-none overflow-y-auto">
-                <p className="px-4 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-4">Administración</p>
+              <div className="space-y-2 flex-1">
+                <p className="px-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-4">Módulos Administrativos</p>
                 {menuItems.map((item) => (
-                  <button
-                    key={item.label}
-                    onClick={item.action}
-                    className="w-full flex items-center justify-between p-4 rounded-[1.5rem] hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all text-slate-700 dark:text-slate-300 font-bold text-sm group"
-                  >
+                  <button key={item.label} onClick={() => { navigate(item.path); setIsMenuOpen(false); }} className="w-full flex items-center justify-between p-4 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all group">
                     <div className="flex items-center gap-4">
-                      <div className="p-2 bg-white dark:bg-slate-800 rounded-xl shadow-soft group-hover:bg-indigo-50 dark:group-hover:bg-indigo-500/10 transition-colors">
-                        <item.icon className="w-5 h-5 group-hover:text-indigo-600 dark:group-hover:text-indigo-400" />
-                      </div>
-                      {item.label}
+                      <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all"><item.icon size={20} /></div>
+                      <span className="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight">{item.label}</span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:translate-x-1 transition-transform" />
+                    <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 group-hover:text-indigo-600 transition-all" />
                   </button>
                 ))}
+              </div>
 
-                <div className="pt-8 px-4">
-                  <button
-                    onClick={handleLogout}
-                    className={`w-full flex items-center gap-4 p-5 rounded-3xl transition-all font-black text-sm ${confirmLogout ? 'bg-rose-500 text-white shadow-lg' : 'text-rose-500 bg-rose-50 dark:bg-rose-500/10 hover:bg-rose-100 dark:hover:bg-rose-500/20 shadow-soft'}`}
-                  >
-                    <LogOut className="w-5 h-5" />
-                    {confirmLogout ? '¿Confirmar Salida?' : 'Cerrar Sesión'}
-                  </button>
-                </div>
-              </nav>
-
-              <div className="p-8 bg-slate-50 dark:bg-slate-800/20 mt-auto border-t border-slate-100 dark:border-slate-800/50">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-black italic shadow-lg shadow-indigo-500/20">
-                    {user?.nombre?.charAt(0) || 'U'}
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-slate-900 dark:text-white leading-none mb-1">{user?.nombre || 'Admin'}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Master Admin</p>
-                  </div>
-                </div>
+              <div className="mt-auto pt-6 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-center text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">Garsea App v2.0</p>
               </div>
             </motion.div>
-          </div>
+          </>
         )}
       </AnimatePresence>
 
-      {/* Area de Contenido */}
-      <main className={`transition-all duration-500 pt-24 pb-32 ${isMenuOpen ? 'scale-95 blur-sm' : ''}`}>
-        <div className="animate-fadeIn">
-          {children}
-        </div>
+      <main className="pt-24 pb-32">
+        {children}
       </main>
 
-      {/* Dock de Navegación Premium */}
-      <nav className="fixed bottom-8 left-0 right-0 z-[120] px-6 pointer-events-none">
-        <div className="max-w-xl mx-auto flex items-center justify-center">
-          <div className="flex items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-3xl border border-white/40 dark:border-white/5 rounded-[2.5rem] p-2 shadow-2xl pointer-events-auto relative">
-
-            {/* Indicador Deslizante */}
-            {activeIndex !== -1 && (
-              <motion.div
-                layoutId="navIndicator"
-                className="absolute bg-indigo-600 rounded-3xl z-0"
-                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-                style={{
-                  width: '64px',
-                  height: '64px',
-                  left: 8 + (activeIndex * 72)
-                }}
-              />
-            )}
-
-            <div className="flex items-center gap-2 relative z-10">
-              {NAV_ITEMS.map((item, i) => {
-                const isActive = i === activeIndex;
-                const Icon = item.icon;
-
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => navigate(item.path)}
-                    className="relative w-16 h-16 flex flex-col items-center justify-center rounded-3xl transition-all duration-200 active:scale-90 group"
+      {/* Dock Inferior - Ultradelgado y Flotante */}
+      <nav className="fixed bottom-8 left-0 right-0 z-[120] px-6">
+        <div className="max-w-xl mx-auto bg-white/90 dark:bg-slate-900/90 backdrop-blur-2xl border-2 border-white dark:border-slate-800 rounded-[3rem] p-2 shadow-xl flex items-center justify-around relative ring-8 ring-slate-100/50 dark:ring-black/10">
+          {NAV_ITEMS.map((item) => {
+            const isActive = location.pathname.startsWith(item.path);
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => navigate(item.path)}
+                className={`relative flex flex-col items-center justify-center w-16 h-16 rounded-[2.5rem] transition-all duration-500 overflow-hidden ${isActive ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200'}`}
+              >
+                <Icon className={`w-6 h-6 ${isActive ? 'scale-110 mb-0.5' : 'mb-0'}`} strokeWidth={isActive ? 2.5 : 2} />
+                {isActive && (
+                  <motion.span
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="text-[8px] font-black uppercase tracking-tight leading-none"
                   >
-                    <Icon
-                      className={`w-6 h-6 transition-all duration-300 ${isActive ? 'text-white scale-110' : 'text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white group-hover:scale-110'}`}
-                      strokeWidth={isActive ? 2.5 : 2}
-                    />
-                    {isActive && (
-                      <motion.div
-                        layoutId="navDot"
-                        className="absolute -bottom-1 w-1 h-1 bg-white rounded-full"
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    {item.label}
+                  </motion.span>
+                )}
+                {/* Indicador de Pulsación */}
+                {!isActive && (
+                  <div className="absolute inset-0 bg-indigo-50 dark:bg-indigo-900/10 opacity-0 hover:opacity-100 transition-opacity" />
+                )}
+              </button>
+            );
+          })}
         </div>
       </nav>
     </div>

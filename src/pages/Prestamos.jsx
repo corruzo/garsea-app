@@ -9,16 +9,18 @@ import Modal from '../components/ui/Modal';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import {
-  PlusIcon,
-  MagnifyingGlassIcon,
-  BanknotesIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ExclamationCircleIcon
-} from '@heroicons/react/24/outline'; // Removed unnecessary icons since ArrowLeftIcon was unused in view
+  Plus,
+  Search,
+  Banknote,
+  Clock,
+  CheckCircle,
+  AlertCircle,
+  ChevronLeft
+} from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const Prestamos = () => {
-  const { organizacion } = useAuthStore();
+  const { organizacion, user } = useAuthStore();
   const navigate = useNavigate();
   const { loans, loading, createLoan, refreshLoans } = useLoans(organizacion?.id);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,41 +30,26 @@ const Prestamos = () => {
   const handleCreateLoan = async (loanData, files) => {
     try {
       const newLoan = await createLoan(loanData);
-
       if (newLoan && files && files.length > 0) {
-        toast.loading('Subiendo fotos de garantía...', { id: 'upload' });
-
+        toast.loading('Subiendo fotos...', { id: 'upload' });
         const uploadPromises = files.map(async (file) => {
           const uploadResult = await storageService.uploadGuaranteePhoto(file, organizacion.id);
-
           await storageService.registerDocument({
-            organizacion_id: organizacion.id,
-            tipo_entidad: 'prestamo',
-            entidad_id: newLoan.id,
-            tipo_documento: 'garantia',
-            nombre_archivo: uploadResult.name,
-            url_archivo: uploadResult.url,
-            tamaño_bytes: uploadResult.size,
-            mime_type: uploadResult.type,
-            subido_por: user?.cedula || 'SISTEMA'
+            organizacion_id: organizacion.id, tipo_entidad: 'prestamo', entidad_id: newLoan.id, tipo_documento: 'garantia',
+            nombre_archivo: uploadResult.name, url_archivo: uploadResult.url, tamaño_bytes: uploadResult.size,
+            mime_type: uploadResult.type, subido_por: user?.cedula || 'SISTEMA'
           });
         });
-
         await Promise.all(uploadPromises);
-        toast.success('Fotos subidas correctamente', { id: 'upload' });
-        refreshLoans(); // Refresh to show everything
+        toast.success('Préstamo creado', { id: 'upload' });
+        refreshLoans();
       }
-
       setIsModalOpen(false);
-    } catch (error) {
-      console.error('Error en el proceso de creación:', error);
-      toast.error('Error al procesar el préstamo o las fotos');
-    }
+    } catch (error) { toast.error('Error al procesar'); }
   };
 
   const filteredPrestamos = loans.filter(p => {
-    const matchesSearch = p.clientes?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.cliente_cedula.includes(searchTerm);
+    const matchesSearch = p.clientes?.nombre?.toLowerCase().includes(searchTerm.toLowerCase()) || p.cliente_cedula.includes(searchTerm);
     const matchesStatus = filterStatus === 'todos' || p.estado === filterStatus;
     return matchesSearch && matchesStatus;
   });
@@ -74,62 +61,58 @@ const Prestamos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-      {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-8">
-          <div className="flex items-center justify-between gap-4">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950 pb-20 animate-fadeIn transition-colors">
+      <header className="px-6 py-8">
+        <div className="max-w-5xl mx-auto space-y-8">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="p-2 hover:bg-white dark:hover:bg-slate-900 rounded-xl transition-all border border-transparent hover:border-slate-200 dark:hover:border-slate-800"
+              >
+                <ChevronLeft className="w-6 h-6 text-slate-400" />
+              </button>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <BanknotesIcon className="w-8 h-8 text-green-500" />
-                  Préstamos
-                </h1>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {loans.length} registrados en total
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Gestión Préstamos</h1>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest leading-none mt-1">
+                  Control de contratos vigentes
                 </p>
               </div>
             </div>
-
             <Button
               onClick={() => setIsModalOpen(true)}
-              className="flex items-center gap-2 shadow-lg shadow-green-500/20 !bg-green-600 hover:!bg-green-700"
+              size="md"
+              icon={<Plus size={18} />}
             >
-              <PlusIcon className="w-5 h-5 sm:w-6 sm:h-6" />
-              <span className="hidden xs:inline">Nuevo Préstamo</span>
-              <span className="xs:hidden">Nuevo</span>
+              NUEVO PRÉSTAMO
             </Button>
           </div>
 
-          <div className="mt-6 flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-2">
               <Input
-                placeholder="Buscar cliente por nombre o C.I..."
+                placeholder="Buscar por cliente o C.I..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                icon={<MagnifyingGlassIcon className="w-5 h-5" />}
-                className="!py-2"
+                icon={<Search size={18} className="text-slate-400" />}
+                className="!mb-0"
               />
             </div>
-            <div className="flex gap-2 p-1 bg-gray-100 dark:bg-gray-700 rounded-xl overflow-x-auto no-scrollbar">
+            <div className="md:col-span-2 flex bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-x-auto">
               {[
-                { id: 'todos', label: 'Todos', icon: BanknotesIcon },
-                { id: 'activo', label: 'Activos', icon: ClockIcon },
-                { id: 'atrasado', label: 'Atrasados', icon: ExclamationCircleIcon },
-                { id: 'pagado', label: 'Pagados', icon: CheckCircleIcon },
+                { id: 'todos', label: 'Todos', icon: Banknote },
+                { id: 'activo', label: 'Activos', icon: Clock },
+                { id: 'atrasado', label: 'Atrasos', icon: AlertCircle },
+                { id: 'pagado', label: 'Pagados', icon: CheckCircle },
               ].map((f) => (
                 <button
                   key={f.id}
                   onClick={() => setFilterStatus(f.id)}
-                  className={`
-                                        flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-bold whitespace-nowrap transition-all active:scale-95
-                                        ${filterStatus === f.id
-                      ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}
-                                    `}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${filterStatus === f.id ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'
+                    }`}
                 >
                   <f.icon className="w-4 h-4" />
-                  {f.label}
+                  <span className="hidden lg:block">{f.label}</span>
                 </button>
               ))}
             </div>
@@ -137,77 +120,40 @@ const Prestamos = () => {
         </div>
       </header>
 
-      {/* Quick Stats on Mobile */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-blue-500/10 p-3 rounded-2xl text-center">
-            <p className="text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Activos</p>
-            <p className="text-xl font-black text-blue-700 dark:text-blue-300">{stats.activos}</p>
+      {/* Resumen de Estados Equilibrado */}
+      <div className="max-w-5xl mx-auto px-6 grid grid-cols-3 gap-4 mb-8">
+        {[
+          { label: 'ACTIVOS', count: stats.activos, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
+          { label: 'ATRASOS', count: stats.atrasados, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
+          { label: 'PAGADOS', count: stats.pagados, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' }
+        ].map((s) => (
+          <div key={s.label} className={`${s.bg} p-4 rounded-2xl border border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center`}>
+            <span className={`text-[10px] font-black uppercase tracking-widest ${s.color} opacity-80 mb-1`}>{s.label}</span>
+            <span className="text-xl font-black text-slate-900 dark:text-white tabular-nums">{s.count}</span>
           </div>
-          <div className="bg-amber-500/10 p-3 rounded-2xl text-center">
-            <p className="text-[10px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">Atrasados</p>
-            <p className="text-xl font-black text-amber-700 dark:text-amber-300">{stats.atrasados}</p>
-          </div>
-          <div className="bg-green-500/10 p-3 rounded-2xl text-center">
-            <p className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">Pagados</p>
-            <p className="text-xl font-black text-green-700 dark:text-green-300">{stats.pagados}</p>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-5xl mx-auto px-6 py-4">
         {loading && loans.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 font-medium">Cargando préstamos...</p>
-          </div>
+          <div className="text-center py-20"><div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" /></div>
         ) : filteredPrestamos.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredPrestamos.map((p) => (
-              <PrestamoCard
-                key={p.id}
-                prestamo={p}
-                onClick={() => navigate(`/prestamos/${p.id}`)}
-              />
+              <PrestamoCard key={p.id} prestamo={p} onClick={() => navigate(`/prestamos/${p.id}`)} />
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 bg-white dark:bg-gray-800 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700 shadow-sm">
-            <div className="w-20 h-20 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
-              <BanknotesIcon className="w-10 h-10 text-gray-400" />
-            </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">
-              {searchTerm ? 'No se encontraron resultados' : 'No hay préstamos registrados'}
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              {searchTerm
-                ? 'Prueba con otros términos de búsqueda'
-                : 'Comienza creando tu primer contrato de préstamo'}
-            </p>
-            {!searchTerm && (
-              <Button
-                onClick={() => setIsModalOpen(true)}
-                className="mt-6"
-                variant="outline"
-              >
-                Crear Préstamo
-              </Button>
-            )}
+          <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <Banknote className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">Sin contratos</h3>
+            <p className="text-sm font-bold text-slate-400 mt-1">No se encontraron préstamos registrados.</p>
           </div>
         )}
-      </div>
+      </main>
 
-      {/* Modal de Nuevo Préstamo */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Nuevo Préstamo"
-      >
-        <PrestamoForm
-          onSubmit={handleCreateLoan}
-          loading={loading}
-        />
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Crear Nuevo Préstamo">
+        <PrestamoForm onSubmit={handleCreateLoan} loading={loading} />
       </Modal>
     </div>
   );
