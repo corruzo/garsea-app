@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence } from 'framer-motion';
@@ -19,6 +20,8 @@ import ResetPassword from './pages/ResetPassword.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import Layout from './components/Layout.jsx';
 import PageTransition from './components/PageTransition.jsx';
+import { useAuthStore } from './stores/authStore';
+import { authService } from './services/authService';
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -178,6 +181,21 @@ function AnimatedRoutes() {
 }
 
 function App() {
+  const { initSession, loading } = useAuthStore();
+
+  useEffect(() => {
+    initSession(authService);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4" />
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Verificando sesión...</p>
+      </div>
+    );
+  }
+
   return (
     <BrowserRouter>
       <Toaster
