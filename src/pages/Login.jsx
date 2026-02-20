@@ -73,8 +73,6 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center p-6 animate-fadeIn transition-colors duration-500">
-      <Toaster position="top-center" />
-
       <div className="fixed top-6 right-6 z-50">
         <ThemeToggle />
       </div>

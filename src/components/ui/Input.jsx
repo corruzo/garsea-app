@@ -16,7 +16,7 @@ const Input = ({
   return (
     <div className={`w-full ${className} mb-4`}>
       {label && (
-        <label className="block text-xs font-black text-slate-500 dark:text-slate-400 mb-1.5 uppercase tracking-widest px-1">
+        <label className="block text-xs font-black text-slate-700 dark:text-slate-300 mb-1.5 uppercase tracking-widest px-1">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>

@@ -16,7 +16,7 @@ import {
 const Field = ({ label, required, disabled, icon: Icon, children, hint }) => (
     <div className="group relative">
         <label className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.15em] mb-2 transition-colors
-            ${disabled ? 'text-gray-300 dark:text-gray-600' : 'text-gray-400 dark:text-gray-500 group-focus-within:text-indigo-500'}`}>
+            ${disabled ? 'text-gray-300 dark:text-gray-600' : 'text-slate-600 dark:text-slate-300 group-focus-within:text-indigo-500'}`}>
             {Icon && <Icon className="w-3.5 h-3.5" />}
             {label}
             {required && <span className="text-rose-500">*</span>}
